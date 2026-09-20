@@ -47,6 +47,25 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `npm run start` | Start the production server                      |
 | `npm run lint`  | Run ESLint                                       |
 
+## Supabase
+
+The app connects to an existing Supabase project through `@supabase/ssr` (cookie-based sessions for Next.js App Router).
+
+- Client utilities live in `src/lib/supabase/`:
+  - `client.ts` — browser client for Client Components
+  - `server.ts` — server client for Server Components, Server Actions, and Route Handlers
+  - `proxy.ts` — session refresh helper, wired up in `src/proxy.ts` (Next.js 16's renamed middleware)
+- `src/proxy.ts` refreshes Supabase Auth tokens on matched requests.
+- Only the **publishable key** is used. No service-role key, database password, or access token appears anywhere in this repository.
+
+### Verify the connection
+
+```bash
+npm run check:supabase
+```
+
+Prints only reachability status and the Auth server version — never secret values.
+
 ## Project Structure
 
 ```
@@ -55,11 +74,17 @@ src/
     page.tsx      # Landing page
     dashboard/    # Dashboard (placeholder for now)
   components/     # Shared React components
+  lib/supabase/   # Supabase client utilities (browser, server, proxy)
+  proxy.ts        # Next.js 16 proxy entry (session refresh)
+scripts/
+  check-supabase.mjs  # Connection test (no secrets printed)
 ```
 
 ## Roadmap
 
-- [ ] Database integration (Supabase)
+- [x] Project foundation (Next.js, TypeScript, Tailwind)
+- [x] Supabase client integration
+- [ ] Database schema (planned for a later phase)
 - [ ] Dashboard features (activities, hours, achievements)
 - [ ] Authentication
 
