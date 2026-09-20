@@ -71,6 +71,7 @@ Prints only reachability status and the Auth server version — never secret val
 
 - [DATABASE_PLAN.md](./DATABASE_PLAN.md) — proposed schema, ownership, RLS strategy, migration strategy, privacy review
 - [PHASE_1_UX_PLAN.md](./PHASE_1_UX_PLAN.md) — complete UX architecture: flows, screens, states, responsive and accessibility spec
+- [PHASE_1_DESIGN_SYSTEM.md](./PHASE_1_DESIGN_SYSTEM.md) — design tokens, component system, motion conventions, tooling decisions
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — application layers and their rules
 - [MVP_SCOPE.md](./MVP_SCOPE.md) — what the MVP includes and excludes
 - [DEVELOPMENT_RULES.md](./DEVELOPMENT_RULES.md) — Git, security, testing, quality, and scope rules
