@@ -1,25 +1,64 @@
-import Link from "next/link";
-import { SiteHeader } from "@/components/site-header";
+import { LightbulbMascot } from "@/components/mascot/lightbulb-mascot";
+import { ButtonLink } from "@/components/ui/button";
+import { Card, CardBody, CardTitle, CardDescription } from "@/components/ui/card";
+import { Container } from "@/components/ui/container";
+
+const previews = [
+  {
+    title: "Track activities",
+    description:
+      "Log clubs, sports, service, and projects with hours and dates.",
+  },
+  {
+    title: "Collect achievements",
+    description:
+      "Keep awards, certificates, and results in one tidy place.",
+  },
+  {
+    title: "Find opportunities",
+    description:
+      "Browse curated competitions and programs with friendly reminders.",
+  },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-1 flex-col bg-zinc-50 font-sans dark:bg-zinc-950">
-      <SiteHeader />
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center gap-6 px-6 py-24 text-center">
-        <h1 className="text-4xl font-semibold tracking-tight text-zinc-950 sm:text-5xl dark:text-zinc-50">
+    <Container className="flex flex-1 flex-col items-center justify-center gap-10 py-16 text-center sm:py-24">
+      <LightbulbMascot mood="happy" className="h-28 w-28" />
+
+      <div className="max-w-2xl">
+        <h1 className="font-drawn text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
           Extracurricular Dashboard
         </h1>
-        <p className="max-w-xl text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-          Track activities, hours, and achievements in one place. The
-          foundation is in place — features are coming soon.
+        <p className="mt-4 text-lg leading-8 text-body">
+          A friendly home for everything you do outside class — your
+          activities, achievements, and the opportunities worth chasing.
         </p>
-        <Link
-          href="/dashboard"
-          className="flex h-12 items-center justify-center rounded-full bg-zinc-950 px-6 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-300"
-        >
-          Go to Dashboard
-        </Link>
-      </main>
-    </div>
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <ButtonLink href="/dashboard" size="lg">
+          Open your dashboard
+        </ButtonLink>
+        <ButtonLink href="/dashboard" variant="outline" size="lg">
+          See what&apos;s coming
+        </ButtonLink>
+      </div>
+
+      <div className="mt-4 grid w-full gap-4 text-left sm:grid-cols-3">
+        {previews.map((item) => (
+          <Card key={item.title}>
+            <CardBody className="flex flex-col gap-2">
+              <CardTitle>{item.title}</CardTitle>
+              <CardDescription>{item.description}</CardDescription>
+            </CardBody>
+          </Card>
+        ))}
+      </div>
+
+      <p className="text-sm text-faint">
+        Phase 0 — the shell is ready; features arrive in Phase 1.
+      </p>
+    </Container>
   );
 }

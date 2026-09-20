@@ -1,26 +1,110 @@
 @import "tailwindcss";
 
+/*
+ * Extracurricular Dashboard — design tokens (Phase 0)
+ *
+ * A light, warm-neutral, student-friendly foundation. Warmth comes from a
+ * cream page background and amber accents; structure comes from soft borders
+ * and gentle shadows. Spacing, radii, and borders are used consistently:
+ *   - radius:  rounded-lg (cards) / rounded-full (buttons, badges)
+ *   - border:  1px --color-line
+ *   - spacing: multiples of 4 via Tailwind utilities
+ *
+ * Dark mode intentionally keeps the same warm hue family so the brand holds
+ * across schemes. Components must consume these tokens (bg-surface,
+ * text-body, border-line, ...) instead of raw zinc/gray classes.
+ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Warm neutral surfaces */
+  --background: #faf7f2; /* warm cream page background   */
+  --surface: #ffffff; /* cards, sheets               */
+  --surface-muted: #f4efe7; /* subtle wells, table headers */
+
+  /* Warm ink text scale */
+  --foreground: #2b2521; /* primary text                */
+  --body: #5b544c; /* body/secondary text         */
+  --faint: #8a8178; /* meta text                   */
+
+  /* Lines and borders */
+  --line: #e7e0d6;
+  --line-strong: #d8cfc2;
+
+  /* Amber accent (friendly lightbulb brand) */
+  --accent: #b45309; /* accessible amber text on cream */
+  --accent-strong: #92400e;
+  --accent-soft: #fef3c7; /* pale amber fill             */
+  --accent-glow: #fbbf24; /* bulb glow                   */
+
+  /* Feedback */
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
+  --success: #15803d;
+  --success-soft: #dcfce7;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
   --color-foreground: var(--foreground);
+  --color-body: var(--body);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-glow: var(--accent-glow);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #221e1a;
+    --surface: #2b2620;
+    --surface-muted: #332d26;
+    --foreground: #f3ede4;
+    --body: #c9c0b4;
+    --faint: #968d81;
+    --line: #3d372f;
+    --line-strong: #4a433a;
+    --accent: #fbbf24;
+    --accent-strong: #fcd34d;
+    --accent-soft: #443923;
+    --accent-glow: #fbbf24;
+    --danger: #f87171;
+    --danger-soft: #44272a;
+    --success: #4ade80;
+    --success-soft: #1f3a29;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+/*
+ * Keep focus visible on warm surfaces: a two-ring treatment (dark ring inside
+ * a paper halo) works on both cream and white backgrounds.
+ */
+:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+/*
+ * Hand-drawn feel for headings: slightly irregular, friendly, still crisp.
+ * Applied via the `.font-drawn` utility below.
+ */
+@layer utilities {
+  .font-drawn {
+    letter-spacing: -0.01em;
+  }
 }

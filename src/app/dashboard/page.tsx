@@ -1,42 +1,68 @@
-import { SiteHeader } from "@/components/site-header";
+import { ButtonLink } from "@/components/ui/button";
+import {
+  Card,
+  CardBody,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Container } from "@/components/ui/container";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const metadata = {
   title: "Dashboard | Extracurricular Dashboard",
   description: "Your extracurricular activities at a glance.",
 };
 
+const placeholders = [
+  { title: "Activities", description: "Log and review what you do each week." },
+  {
+    title: "Hours logged",
+    description: "See your committed time grow over the year.",
+  },
+  {
+    title: "Achievements",
+    description: "Collect awards and milestones as they happen.",
+  },
+];
+
 export default function DashboardPage() {
   return (
-    <div className="flex flex-1 flex-col bg-zinc-50 font-sans dark:bg-zinc-950">
-      <SiteHeader />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-12">
-        <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-          Dashboard
+    <Container className="flex-1 py-12">
+      <header className="mb-8">
+        <h1 className="font-drawn text-3xl font-semibold tracking-tight text-foreground">
+          Your dashboard
         </h1>
-        <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-          This is a placeholder. Dashboard features will be built here.
+        <p className="mt-2 text-body">
+          A peek at the layout. Real data arrives in Phase 1.
         </p>
+      </header>
 
-        <div className="mt-10 grid gap-4 sm:grid-cols-3">
-          {[
-            { label: "Activities", hint: "Coming soon" },
-            { label: "Hours logged", hint: "Coming soon" },
-            { label: "Achievements", hint: "Coming soon" },
-          ].map((card) => (
-            <div
-              key={card.label}
-              className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"
-            >
-              <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                {card.label}
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
-                {card.hint}
-              </p>
-            </div>
-          ))}
-        </div>
-      </main>
-    </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        {placeholders.map((item) => (
+          <Card key={item.title}>
+            <CardHeader>
+              <CardTitle>{item.title}</CardTitle>
+              <CardDescription>{item.description}</CardDescription>
+            </CardHeader>
+            <CardBody>
+              <p className="text-sm text-faint">Coming in Phase 1</p>
+            </CardBody>
+          </Card>
+        ))}
+      </div>
+
+      <div className="mt-8">
+        <EmptyState
+          title="Nothing tracked yet"
+          description="Once onboarding exists, your activities and achievements will show up here."
+          action={
+            <ButtonLink href="/" variant="outline" size="sm">
+              Back home
+            </ButtonLink>
+          }
+        />
+      </div>
+    </Container>
   );
 }

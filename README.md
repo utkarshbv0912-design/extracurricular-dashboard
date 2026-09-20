@@ -46,6 +46,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `npm run build` | Create a production build                        |
 | `npm run start` | Start the production server                      |
 | `npm run lint`  | Run ESLint                                       |
+| `npm run check:supabase` | Verify Supabase connectivity (no secrets printed) |
 
 ## Supabase
 
@@ -77,15 +78,27 @@ Prints only reachability status and the Auth server version — never secret val
 
 ```
 src/
-  app/            # App Router pages and layouts
+  app/            # App Router pages, layouts, loading/error/not-found states
     page.tsx      # Landing page
     dashboard/    # Dashboard (placeholder for now)
-  components/     # Shared React components
+  components/
+    ui/           # Reusable primitives (Button, Card, Container, EmptyState, Spinner)
+    mascot/       # Lumo, the lightbulb mascot (inline SVG)
+    site-*.tsx    # Shared layout chrome (header, footer)
   lib/supabase/   # Supabase client utilities (browser, server, proxy)
   proxy.ts        # Next.js 16 proxy entry (session refresh)
 scripts/
   check-supabase.mjs  # Connection test (no secrets printed)
 ```
+
+### Design foundation
+
+The visual language lives in `src/app/globals.css` (warm light theme tokens:
+`--background`, `--surface`, `--accent`, ...) and in `src/components/ui/`.
+Components consume the tokens (`bg-surface`, `text-body`, `border-line`) so the
+look stays consistent. "Lumo", the pencil-drawn lightbulb mascot, is a single
+SVG component (`src/components/mascot/lightbulb-mascot.tsx`) used on landing,
+empty, error, and 404 states.
 
 ## Roadmap
 
