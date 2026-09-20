@@ -33,8 +33,9 @@ opportunity_reports *────1 users (auth) [reporter]
 ### profiles
 
 - **Purpose:** Student-facing profile and matching preferences. One row per
-  authenticated user, created automatically on signup (trigger or server-side
-  onboarding step — decided at implementation).
+  authenticated user, created by an explicit server-side onboarding step after
+  signup — **not** by an `auth.users` database trigger (locked; see "Profile
+  creation flow" below).
 - **Ownership:** The single user referenced by `id`. Never writable by other
   students.
 - **Important fields:**
@@ -42,13 +43,40 @@ opportunity_reports *────1 users (auth) [reporter]
   - `display_name text` — optional, self-chosen
   - `grade_level text` — coarse band (e.g. "9", "10", "11", "12", "other");
     stored instead of birthdate or age
-  - `interests text[]` — free/self-reported tags used by recommendations
+  - `interests text[]` — zero or more values from the shared category
+    taxonomy (see "Category taxonomy") used by rule-based recommendations;
+    students select from the controlled list rather than creating arbitrary
+    tags
   - `preferences jsonb` — future matching preferences (e.g. preferred
     activity types), kept schema-flexible
   - `created_at timestamptz`, `updated_at timestamptz`
 - **Future security requirements:** RLS enabled; SELECT/UPDATE restricted to
-  `auth.uid() = id`; no INSERT by clients other than the owner's signup flow;
-  no DELETE (account deletion handled out of scope, via support flow).
+  `auth.uid() = id`; no INSERT by clients other than the owner's server-side
+  onboarding operation, which can only create/update the authenticated
+  user's own profile (`WITH CHECK (auth.uid() = id)`); no DELETE (account
+  deletion handled out of scope, via support flow).
+
+#### Profile creation flow (locked)
+
+```
+Sign up → authenticated session → onboarding → server-side profile creation
+→ dashboard
+```
+
+- After signup the user holds an authenticated session but no profile row
+  yet; onboarding collects display name, grade band, and interests.
+- Submission goes to a server action / route handler that runs with the
+  caller's own session and inserts the profile with `id = auth.uid()`. It can
+  only create or update the authenticated user's own profile — never another
+  user's. RLS (`auth.uid() = id` with `WITH CHECK`) is the ultimate security
+  boundary; the server code adds no bypass.
+- No `auth.users` insert trigger is used for MVP profile creation. Explicit
+  server-side creation keeps profile setup inside the onboarding UX (where
+  interests and preferences are actually collected) and avoids
+  trigger-side failure modes.
+- Until a profile exists, the student is redirected to onboarding; the
+  dashboard and finder require an authenticated session (see the access
+  model in "How public or curated opportunities are managed").
 - **Deliberately excluded:** birthdate, age, home address, GPS/location
   coordinates, school name (not needed for the MVP matching rules), phone
   number.
@@ -62,7 +90,8 @@ opportunity_reports *────1 users (auth) [reporter]
   - `id uuid PK default gen_random_uuid()`
   - `user_id uuid NOT NULL REFERENCES profiles(id)` — owner
   - `title text NOT NULL`
-  - `category text` — self-reported taxonomy (e.g. sports, music, service)
+  - `category text` — exactly one value from the shared category taxonomy
+    (see "Category taxonomy")
   - `description text`
   - `started_on date`, `ended_on date` — dates only; no recurring schedule
     engine in the MVP
@@ -100,8 +129,9 @@ opportunity_reports *────1 users (auth) [reporter]
   - `title text NOT NULL`
   - `organization text`
   - `description text`
-  - `category text` — taxonomy shared with `activities.category` and
-    `profiles.interests` for rule-based matching
+  - `category text` — exactly one value from the shared category taxonomy
+    (see "Category taxonomy"), shared conceptually with `activities.category`
+    and `profiles.interests` for rule-based matching
   - `eligibility text` — free-form eligibility notes
   - `min_grade_level text NULL` / `max_grade_level text NULL` — coarse bands,
     matching the profile field; enables basic filters without collecting age
@@ -110,8 +140,10 @@ opportunity_reports *────1 users (auth) [reporter]
   - `status text NOT NULL DEFAULT 'draft'` — `draft | published | archived`
   - `created_at timestamptz`, `updated_at timestamptz`
 - **Future security requirements:** RLS enabled with two distinct policies:
-  students may SELECT only `status = 'published'` rows; admins may SELECT all
-  and INSERT/UPDATE (no client DELETE — archiving only). Drafts are never
+  authenticated students may SELECT only `status = 'published'` rows; admins
+  may SELECT all and INSERT/UPDATE (no client DELETE — archiving only).
+  Anonymous requests see no rows — the catalog is not publicly readable in
+  the MVP (see the access model below). Drafts and archived rows are never
   readable by students. All writes flow through the admin surface, which
   validates input server-side.
 
@@ -141,10 +173,23 @@ opportunity_reports *────1 users (auth) [reporter]
   - `opportunity_id uuid NULL REFERENCES opportunities(id)` — nullable so a
     student can track an application outside the curated catalog
   - `status text NOT NULL DEFAULT 'planned'` —
-    `planned | in_progress | submitted | accepted | rejected`
+    `planned | in_progress | submitted | accepted | rejected | withdrawn`
   - `deadline date` — editable snapshot; the catalog deadline may change
   - `notes text`
   - `created_at timestamptz`, `updated_at timestamptz`
+- **Multiple applications allowed (locked):** there is deliberately **no**
+  unique constraint on `(user_id, opportunity_id)`. Some opportunities
+  repeat annually or run several application cycles, so the same student may
+  legitimately apply again; every application row carries its own `id` and
+  is tracked independently. `opportunity_id` stays nullable for off-catalog
+  tracking.
+- **Status lifecycle (intended):**
+  `planned → in_progress → submitted → accepted/rejected/withdrawn`.
+  The database does not enforce a strict transition sequence — `status`
+  records the current state, and reasonable transitions are controlled by
+  the application UI/validation layer. `withdrawn` records a student pulling
+  out; it is a student-chosen terminal state alongside
+  `accepted`/`rejected`.
 - **Future security requirements:** RLS enabled; scoped by
   `auth.uid() = user_id`.
 
@@ -189,6 +234,40 @@ opportunity_reports *────1 users (auth) [reporter]
   (`auth.uid() = reported_by`) and admins; UPDATE (status resolution) admins
   only.
 
+## Category taxonomy (locked)
+
+The MVP uses a **controlled shared category taxonomy**: students select from
+a fixed list rather than creating arbitrary categories, so rule-based
+matching compares like with like. The same conceptual taxonomy applies to
+`profiles.interests`, `activities.category`, and `opportunities.category` —
+one list of allowed values, stored as `text`. No separate category table is
+introduced: nothing in the current architecture needs per-category metadata,
+and the validation layer can own the list.
+
+Initial categories:
+
+1. Sports
+2. Music
+3. Arts & Design
+4. Technology
+5. Science
+6. Business & Entrepreneurship
+7. Community Service
+8. Leadership
+9. Writing & Media
+10. Academic
+11. Debate & Public Speaking
+12. Environment
+13. Other
+
+- `Other` stays available for anything that fits nowhere else, so the
+  controlled list never forces a wrong label.
+- The list lives as a validation-layer constant shared between client-side
+  selects and server-side validation. Changing it is an additive, reviewed
+  change — not runtime user input.
+- `profiles.interests` holds zero or more values from this list;
+  `activities.category` and `opportunities.category` hold exactly one.
+
 ## How a student is restricted to their own private records
 
 Every student-owned table (`profiles`, `activities`, `achievements`,
@@ -219,13 +298,21 @@ CREATE POLICY "owner_full_access"
 
 ## How public or curated opportunities are managed
 
+- **MVP access model (locked):** the landing/marketing page is public; the
+  student dashboard and opportunity finder require authentication. Published
+  opportunities are readable only by authenticated students through the
+  authenticated application flow — the catalog is **not** publicly readable
+  in the MVP. Draft and archived rows remain hidden from students, and admin
+  access is separately protected (see "How admin permissions will be
+  enforced server-side").
 - The catalog is **curated, not user-generated**: only admins can create or
   edit opportunities. Students interact only by reading published rows,
   saving them, applying, and reporting.
 - `status` drives visibility: `draft → published → archived`.
   - `draft`: invisible to students, visible to admins — used for preparing
     listings (including bulk-pasted ones) before release.
-  - `published`: selectable by any authenticated student.
+  - `published`: readable only by authenticated students through the
+    authenticated application flow; anonymous access returns nothing.
   - `archived`: hidden from students, retained for history and reporting.
 - Admin writes go through a dedicated, server-validated admin surface (see
   ARCHITECTURE.md, "Admin dashboard (future)"). Students never receive write
@@ -263,9 +350,10 @@ Applied in the schema phase, one migration per coherent unit, in this order:
 2. Create policies in the same migration as their table, with explicit
    `USING`/`WITH CHECK` clauses per operation:
    - owner tables: `auth.uid() = user_id` for all operations;
-   - `opportunities`: student SELECT restricted to `status = 'published'`;
-     admin SELECT/INSERT/UPDATE via `EXISTS (SELECT 1 FROM admin_roles WHERE
-     user_id = auth.uid())`;
+   - `opportunities`: authenticated-student SELECT restricted to
+     `status = 'published'` (the policy requires `auth.uid() is not null` —
+     no anonymous read); admin SELECT/INSERT/UPDATE via
+     `EXISTS (SELECT 1 FROM admin_roles WHERE user_id = auth.uid())`;
    - `admin_roles`: owner-read; writes restricted to existing admins;
    - `opportunity_reports`: authenticated INSERT on published opportunities,
      reporter/admin SELECT, admin UPDATE.
@@ -290,7 +378,8 @@ Applied in the schema phase, one migration per coherent unit, in this order:
   database lives in a reviewable, re-runnable file.
 - **Ordering:** each migration is numbered, additive, and shipped with its
   policies, indexes, and down-notes. Example sequence:
-  1. `0001_profiles.sql` — profiles + trigger/policy
+  1. `0001_profiles.sql` — profiles + policies (no auth trigger; the profile
+     row is created by the server-side onboarding flow)
   2. `0002_activities_achievements.sql`
   3. `0003_opportunities_admin_roles.sql` (tables + RLS + seeded first admin)
   4. `0004_saved_applications_reports.sql`
@@ -322,11 +411,41 @@ Reviewed against the planned schema:
   to add birthdate, location, or school identity must update this document
   with the feature that requires it and the justification.
 
-## Open decisions (to resolve in the schema phase)
+## Locked MVP Decisions
 
-- Onboarding profile creation: database trigger on `auth.users` insert vs.
-  explicit server-side creation in the onboarding flow.
-- Exact interest/category taxonomy: a fixed enum-like list (better for
-  matching) vs. free tags (better for flexibility).
-- Whether `applications` gets a unique constraint per (user, opportunity) or
-  allows multiple applications over time (e.g. annual programs).
+These decisions are settled before Phase 1 and are fixed inputs to the
+schema work. Changing any of them is a deliberate, documented revisit — not
+a casual edit.
+
+1. **Profile creation uses server-side onboarding, not an auth trigger.**
+   Sign up → authenticated session → onboarding → server-side profile
+   creation → dashboard. The onboarding operation can only create or update
+   the authenticated user's own profile; RLS (`auth.uid() = id`) remains the
+   ultimate security boundary.
+2. **Interests and categories use the controlled shared category taxonomy**
+   (see "Category taxonomy"). Students select from the list; `Other` covers
+   edge cases. No free-tag category creation, no separate category table.
+3. **Multiple applications for the same opportunity are allowed.** No unique
+   constraint on `(user_id, opportunity_id)`; each application carries its
+   own `id`. `opportunity_id` stays nullable for off-catalog tracking.
+4. **Application status includes `withdrawn`**:
+   `planned | in_progress | submitted | accepted | rejected | withdrawn`;
+   lifecycle `planned → in_progress → submitted →
+   accepted/rejected/withdrawn`. The database does not enforce transition
+   sequencing; the application UI controls reasonable transitions.
+5. **The dashboard and opportunity finder require authentication.** Only the
+   landing/marketing page is public.
+6. **Published opportunities are not publicly readable.** The catalog is
+   readable only by authenticated students through the authenticated
+   application flow; drafts and archived rows stay hidden from students.
+7. **RLS remains the database security boundary.** Every table ships with
+   RLS enabled and explicit policies; no application-level trust replaces
+   it.
+8. **No service-role key is used in application runtime.** Only the
+   publishable key is configured; any future service-role use is limited to
+   tightly scoped, audited maintenance scripts.
+9. **No student-to-student data access exists.** Student-owned rows are
+   visible only to their owner; admins get no exceptions on student data.
+
+All three decisions previously listed as "open" (profile creation,
+taxonomy, application uniqueness) are resolved by items 1–3 above.
