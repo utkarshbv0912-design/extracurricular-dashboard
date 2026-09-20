@@ -66,6 +66,13 @@ npm run check:supabase
 
 Prints only reachability status and the Auth server version — never secret values.
 
+## Documentation
+
+- [DATABASE_PLAN.md](./DATABASE_PLAN.md) — proposed schema, ownership, RLS strategy, migration strategy, privacy review
+- [ARCHITECTURE.md](./ARCHITECTURE.md) — application layers and their rules
+- [MVP_SCOPE.md](./MVP_SCOPE.md) — what the MVP includes and excludes
+- [DEVELOPMENT_RULES.md](./DEVELOPMENT_RULES.md) — Git, security, testing, quality, and scope rules
+
 ## Project Structure
 
 ```
